@@ -212,4 +212,223 @@ fn value_in_cents(coin: Coin) -> u8 {
 }
 ```
 
-Lets break it down.
+Lets break it down. First we use the `match` keyword followed by an expression,
+which is the value `coin` in this case. Seems similar to `if`, but instead of a
+bool, the expression can be any type. Here, `coin` is the `Coin` enum type.
+
+Next are the `match` arms. Arms have two parts, pattern and code. The first arm
+here has a pattern that is the value `Coin::Penny` and then the `=>` operator
+seperates the pattern and code to run. The code is just `1`. Each arm is
+seperated with a comma. The code is an expression, and the resulting value gets
+returned for the entire `match` expression. We can use curly brackets for
+multi-line code.
+
+```
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => {
+            println!("Lucky penny!");
+            1
+        }
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    }
+}
+
+fn main() {}
+```
+
+We can also bind arms to the parts of the values that match the pattern. This is
+how we extract value from enum variants.
+
+In this example, quarters will have a `UsState` enum value.
+
+```
+#[derive(Debug)] // so we can inspect the state in a minute
+enum UsState {
+    Alabama,
+    Alaska,
+    // --snip--
+}
+
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(UsState),
+}
+
+fn main() {}
+```
+
+```
+#[derive(Debug)]
+enum UsState {
+    Alabama,
+    Alaska,
+    // --snip--
+}
+
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(UsState),
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter(state) => {
+            println!("State quarter from {:?}!", state);
+            25
+        }
+    }
+}
+
+fn main() {
+    value_in_cents(Coin::Quarter(UsState::Alaska));
+}
+```
+
+### Matching with `Option<T>`
+Using `match`, we can get values out of `Option<T>`
+
+```
+fn main() {
+    fn plus_one(x: Option<i32>) -> Option<i32> {
+        match x {
+            None => None,
+            Some(i) => Some(i + 1),
+        }
+    }
+
+    let five = Some(5);
+    let six = plus_one(five);
+    let none = plus_one(None);
+}
+```
+
+`Some(5)` will match with `Some(i)` and the `5` will bind to `i`, meaning `i`
+takes the value of `5`. Then we return `Some(6)`.
+
+Another thing, matches are *exahustive*. We must exhaust every last possibility
+in order for the code to be valid.
+
+```
+fn main() {
+    fn plus_one(x: Option<i32>) -> Option<i32> {
+        match x {
+            Some(i) => Some(i + 1),
+        }
+    }
+
+    let five = Some(5);
+    let six = plus_one(five);
+    let none = plus_one(None);
+}
+```
+
+This won't compile because we are missing the `None` case for `Option<T>`. But
+what do we do if there are a lot of options? We can use the Catch-All Pattern
+and the \_Placeholder
+
+### Catch-all Patterns and the \_Placeholder
+If we want to take special actions for a few values, but all other actions
+default to on, it would be tedious to write every case. For example, a dice roll
+where on `3` and `7`, we do a certain action. Here's an example.
+
+```
+fn main() {
+    let dice_roll = 9;
+    match dice_roll {
+        3 => add_fancy_hat(),
+        7 => remove_fancy_hat(),
+        other => move_player(other),
+    }
+
+    fn add_fancy_hat() {}
+    fn remove_fancy_hat() {}
+    fn move_player(num_spaces: u8) {}
+}
+```
+
+The code that runs for the `other` arm uses the variable by passing it into the
+`move_player` function. This catch-all has to come last and matches all values
+not listed (ie `u8`)
+
+Rust also has a special pattern when we don't want to use the value in the
+catch-all pattern: `_`. It matches any value and doesn't bind to that value.
+
+```
+fn main() {
+    let dice_roll = 9;
+    match dice_roll {
+        3 => add_fancy_hat(),
+        7 => remove_fancy_hat(),
+        _ => reroll(),
+    }
+
+    fn add_fancy_hat() {}
+    fn remove_fancy_hat() {}
+    fn reroll() {}
+}
+```
+
+Here, if we don't roll a `3` or a `7`, we reroll. We can also change the code in
+the `_` arm to the unit value `()` if we don't want anything to happen.
+
+```
+fn main() {
+    let dice_roll = 9;
+    match dice_roll {
+        3 => add_fancy_hat(),
+        7 => remove_fancy_hat(),
+        _ => (),
+    }
+
+    fn add_fancy_hat() {}
+    fn remove_fancy_hat() {}
+}
+```
+
+## 6.3 - Concise Control Flow with if let
+The `if let` syntax lets us combine `if` and `let` into a less verbose way to
+handle values that match one pattenr while ignoring the rest. This program
+matches on an `Option<u8>` value in the `config_max` variable but only wants to
+execute code if the value is the `Some` variant.
+
+```
+fn main() {
+    let config_max = Some(3u8);
+    match config_max {
+        Some(max) => println!("The maximum is configured to be {}", max),
+        _ => (),
+    }
+}
+```
+
+We have to deal with the `None` by adding the `_ => ()` after processing just
+one varient. We can use `if let` instead, however we lose the exhaustive
+checking that `match` enforces.
+
+```
+fn main() {
+    let config_max = Some(3u8);
+    if let Some(max) = config_max {
+        println!("The maximum is configured to be {}", max);
+    }
+}
+```
+
+
